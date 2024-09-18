@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  fastapi_app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CHROMA_HOST: "192.168.0.103"
+      CHROMA_PORT: 8005

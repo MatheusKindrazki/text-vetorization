@@ -4,4 +4,4 @@ services:
   fastapi_app:
     build: .
     ports:
-      - "8855:8000"
+      - "8000:8000"

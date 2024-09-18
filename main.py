@@ -54,11 +54,12 @@ def save_chunks(chunks: list[Document]) -> None:
         vector_store = chroma_collection()
         vector_store.add_documents(chunks)
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500, detail=f"Erro ao salvar chunks: {e}")
 
 
-def split_text(document: list[Document]) -> list[Document]:
+def split_text(document: Document) -> list[Document]:
     """Divide o texto em chunks."""
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
@@ -66,7 +67,7 @@ def split_text(document: list[Document]) -> list[Document]:
         length_function=len,
         add_start_index=True,
     )
-    return text_splitter.split_documents(document)
+    return text_splitter.split_documents([document])
 
 
 class UploadRequest(BaseModel):
@@ -88,9 +89,10 @@ def process_content(request: UploadRequest) -> dict:
                 "process_date": datetime.now().strftime("%Y-%m-%d")
             }
         )
-        chunks = split_text([document])
+        chunks = split_text(document)
         save_chunks(chunks)
         all_content = ''.join(chunk.page_content for chunk in chunks)
+
         return {
             "statusCode": 200,
             "body": all_content,

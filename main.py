@@ -17,7 +17,7 @@ app = FastAPI()
 
 # Configurações do cliente
 CHROMA_COLLECTION_NAME = 'meeting-assistant-768-dimensional'
-CHROMA_HOST = os.getenv('CHROMA_HOST', 'host.docker.internal')
+CHROMA_HOST = os.getenv('CHROMA_HOST', '127.0.0.1')
 CHROMA_PORT = int(os.getenv('CHROMA_PORT', 8005))
 
 

@@ -1,17 +1,15 @@
 import os
+import chromadb
 from datetime import datetime
-from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 
 from langchain_core.documents import Document
+from langchain_community.vectorstores import Chroma
 from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-import chromadb
 from chromadb.config import Settings, DEFAULT_DATABASE, DEFAULT_TENANT
-from langchain_community.vectorstores import Chroma
 
 app = FastAPI()
 
@@ -74,6 +72,7 @@ class UploadRequest(BaseModel):
     file_name: str
     file_id: str
     content: str
+    process_date: str
 
 
 @app.post("/upload")
@@ -81,12 +80,14 @@ def process_content(request: UploadRequest) -> dict:
     """Processa o conteúdo do upload."""
     try:
         formatted_content = request.content.replace('__', '\n')
+        process_date = request.process_date or datetime.now().strftime("%Y-%m-%d")
+
         document = Document(
             id=request.file_id,
             page_content=formatted_content,
             metadata={
                 "file_name": request.file_name,
-                "process_date": datetime.now().strftime("%Y-%m-%d")
+                "process_date": process_date  # Usar a data extraída
             }
         )
         chunks = split_text(document)
@@ -105,12 +106,35 @@ def process_content(request: UploadRequest) -> dict:
 
 
 @app.get("/search")
-def search_content(query: str) -> list:
-    """Realiza a busca de conteúdo."""
+def search_content(query: str, k: int = 5) -> list:
+    """Realiza a busca de conteúdo com um número especificado de resultados."""
     try:
         vector_store = chroma_collection()
-        results = vector_store.similarity_search(query=query, k=3)
+        results = vector_store.similarity_search(query=query, k=k)
         return results
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar conteúdo: {e}")
+
+
+@app.get("/deep_search")
+def deep_search(
+    query_texts: list[str],
+    n_results: int = 10,
+    where: dict = None,
+    where_document: dict = None
+) -> list:
+    """Realiza uma busca profunda com múltiplas queries e filtros de metadados."""
+    try:
+        vector_store = chroma_collection()
+        results = vector_store.query(
+            query_texts=query_texts,
+            n_results=n_results,
+            where=where,
+            where_document=where_document
+        )
+        return results
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao realizar busca profunda: {e}"
+        )
